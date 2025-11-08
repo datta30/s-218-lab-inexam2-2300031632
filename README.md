@@ -58,6 +58,7 @@ kubectl version --client
 ```
 .
 ├── README.md
+├── COMMANDS.md
 ├── ansible/
 │   ├── ansible.cfg
 │   ├── inventory/
@@ -71,40 +72,145 @@ kubectl version --client
 │   │   ├── backend/
 │   │   │   ├── tasks/
 │   │   │   │   └── main.yml
-│   │   │   ├── templates/
-│   │   │   │   └── backend-deployment.yml.j2
 │   │   │   └── vars/
 │   │   │       └── main.yml
 │   │   ├── database/
 │   │   │   ├── tasks/
 │   │   │   │   └── main.yml
-│   │   │   ├── templates/
-│   │   │   │   └── database-deployment.yml.j2
 │   │   │   └── vars/
 │   │   │       └── main.yml
 │   │   └── frontend/
 │   │       ├── tasks/
 │   │       │   └── main.yml
-│   │       ├── templates/
-│   │       │   └── frontend-deployment.yml.j2
 │   │       └── vars/
 │   │           └── main.yml
 │   └── group_vars/
 │       └── all.yml
-└── kubernetes/
-    ├── backend/
-    │   ├── backend-deployment.yaml
-    │   ├── backend-service.yaml
-    │   └── backend-configmap.yaml
-    ├── frontend/
-    │   ├── frontend-deployment.yaml
-    │   └── frontend-service.yaml
-    ├── database/
-    │   ├── mysql-deployment.yaml
-    │   ├── mysql-service.yaml
-    │   ├── mysql-pvc.yaml
-    │   └── mysql-secret.yaml
-    └── namespace.yaml
+├── dockerfiles/
+│   ├── Dockerfile.backend
+│   ├── Dockerfile.frontend
+│   └── nginx.conf
+├── kubernetes/
+│   ├── backend/
+│   │   ├── backend-deployment.yaml
+│   │   ├── backend-service.yaml
+│   │   └── backend-configmap.yaml
+│   ├── frontend/
+│   │   ├── frontend-deployment.yaml
+│   │   └── frontend-service.yaml
+│   ├── database/
+│   │   ├── mysql-deployment.yaml
+│   │   ├── mysql-service.yaml
+│   │   ├── mysql-pvc.yaml
+│   │   └── mysql-secret.yaml
+│   └── namespace.yaml
+├── scripts/
+│   ├── build-images.sh
+│   ├── cleanup.sh
+│   └── deploy.sh
+├── travel_booking_backend/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── com/
+│   │   │   │       └── toursandtravel/
+│   │   │   │           ├── config/
+│   │   │   │           ├── controller/
+│   │   │   │           ├── dao/
+│   │   │   │           ├── dto/
+│   │   │   │           ├── entity/
+│   │   │   │           ├── exception/
+│   │   │   │           ├── filter/
+│   │   │   │           ├── interceptor/
+│   │   │   │           ├── resource/
+│   │   │   │           ├── service/
+│   │   │   │           └── utility/
+│   │   │   └── resources/
+│   │   │       ├── application.properties
+│   │   │       └── log4j2-spring.xml
+│   │   └── test/
+│   │       └── java/
+│   │           └── com/
+│   │               └── toursandtravel/
+│   ├── pom.xml
+│   ├── mvnw
+│   └── mvnw.cmd
+└── travel_booking_frontend/
+    ├── src/
+    │   ├── LocationComponent/
+    │   │   ├── AddLocationForm.jsx
+    │   │   ├── UpdateLocationForm.jsx
+    │   │   └── ViewAllLocations.jsx
+    │   ├── LodgingComponent/
+    │   │   ├── AddLodgeForm.jsx
+    │   │   ├── UpdateLodgeForm.jsx
+    │   │   └── ViewAllLodges.jsx
+    │   ├── NavbarComponent/
+    │   │   ├── AdminHeader.jsx
+    │   │   ├── Footer.jsx
+    │   │   ├── Header.jsx
+    │   │   ├── HeaderCustomer.jsx
+    │   │   ├── NormalHeader.jsx
+    │   │   ├── RoleNav.jsx
+    │   │   └── TourGuideHeader.jsx
+    │   ├── PageComponent/
+    │   │   ├── Carousel.jsx
+    │   │   └── HomePage.jsx
+    │   ├── TourBookingComponent/
+    │   │   ├── ViewAllTourBookings.jsx
+    │   │   ├── ViewCustomerTourBookings.jsx
+    │   │   └── ViewTourGuideTourBookings.jsx
+    │   ├── TourComponent/
+    │   │   ├── AddTourActivity.jsx
+    │   │   ├── AddTourForm.jsx
+    │   │   ├── AddTourMeal.jsx
+    │   │   ├── EventBookingPage.jsx
+    │   │   ├── TourBookingPage.jsx
+    │   │   ├── TourCard.jsx
+    │   │   ├── TourCarousel.jsx
+    │   │   ├── TourDetailPage.jsx
+    │   │   ├── UpdateEventForm.jsx
+    │   │   ├── UpdateTourForm.jsx
+    │   │   ├── UpdateTourImage.jsx
+    │   │   ├── ViewAllEvents.jsx
+    │   │   └── ViewGuideTours.jsx
+    │   ├── TransportComponent/
+    │   │   ├── AddTransportForm.jsx
+    │   │   ├── UpdateTransportForm.jsx
+    │   │   └── ViewAllTransports.jsx
+    │   ├── UserComponent/
+    │   │   ├── AdminRegisterForm.jsx
+    │   │   ├── UserLoginForm.jsx
+    │   │   ├── UserRegister.jsx
+    │   │   ├── ViewAllCustomers.jsx
+    │   │   └── ViewAllTourGuides.jsx
+    │   ├── images/
+    │   │   ├── carousel_1.png
+    │   │   ├── credit-card.png
+    │   │   ├── dollor_logo.png
+    │   │   ├── e_logo.png
+    │   │   ├── experience_logo.png
+    │   │   ├── star.png
+    │   │   └── timing_logo.png
+    │   ├── App.css
+    │   ├── App.js
+    │   ├── App.test.js
+    │   ├── index.css
+    │   ├── index.js
+    │   ├── logo.svg
+    │   ├── reportWebVitals.js
+    │   └── setupTests.js
+    ├── public/
+    │   ├── favicon.ico
+    │   ├── index.html
+    │   ├── logo192.png
+    │   ├── logo512.png
+    │   ├── manifest.json
+    │   ├── robots.txt
+    │   └── vite.svg
+    ├── README.md
+    ├── package.json
+    └── package-lock.json
 ```
 
 ## Quick Start

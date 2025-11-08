@@ -1,0 +1,27 @@
+---
+# Playbook to deploy Frontend application for Travel Booking System
+
+- name: Deploy Frontend Application
+  hosts: local
+  gather_facts: yes
+  become: false
+  
+  pre_tasks:
+    - name: Check if Backend is deployed
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: backend-service
+        namespace: "{{ namespace }}"
+      register: backend_service
+      failed_when: false
+      
+    - name: Display warning if Backend is not deployed
+      debug:
+        msg: "WARNING: Backend service not found. Frontend may fail to connect to backend API."
+      when: backend_service.resources | length == 0
+
+  roles:
+    - role: frontend
+      tags:
+        - frontend
+        - presentation

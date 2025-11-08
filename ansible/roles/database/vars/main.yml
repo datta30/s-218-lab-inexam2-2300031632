@@ -1,0 +1,7 @@
+---
+# Database role variables
+
+mysql_service_name: "mysql-service"
+mysql_deployment_name: "mysql-deployment"
+mysql_secret_name: "mysql-secret"
+mysql_pvc_name: "mysql-pvc"

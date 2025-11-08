@@ -1,0 +1,46 @@
+---
+# Playbook to deploy MySQL database for Travel Booking System
+
+- name: Deploy MySQL Database
+  hosts: local
+  gather_facts: yes
+  become: false
+  
+  tasks:
+    - name: Check if kubectl is installed
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+      failed_when: false
+      
+    - name: Display kubectl version
+      debug:
+        msg: "Kubectl is installed: {{ kubectl_version.stdout }}"
+      when: kubectl_version.rc == 0
+      
+    - name: Fail if kubectl is not installed
+      fail:
+        msg: "kubectl is not installed. Please install kubectl first."
+      when: kubectl_version.rc != 0
+      
+    - name: Check Kubernetes cluster connectivity
+      command: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+      failed_when: false
+      
+    - name: Display cluster info
+      debug:
+        msg: "Kubernetes cluster is accessible"
+      when: cluster_info.rc == 0
+      
+    - name: Fail if cluster is not accessible
+      fail:
+        msg: "Cannot connect to Kubernetes cluster. Please ensure cluster is running."
+      when: cluster_info.rc != 0
+
+  roles:
+    - role: database
+      tags:
+        - database
+        - mysql

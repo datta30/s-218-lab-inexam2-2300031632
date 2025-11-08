@@ -1,0 +1,138 @@
+---
+# Main playbook to deploy complete Travel Booking System
+
+- name: Deploy Travel Booking System on Kubernetes
+  hosts: local
+  gather_facts: yes
+  become: false
+  
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg:
+          - "=========================================="
+          - "Travel Booking System Deployment"
+          - "=========================================="
+          - "Application: {{ app_name }}"
+          - "Version: {{ app_version }}"
+          - "Environment: {{ environment }}"
+          - "Namespace: {{ namespace }}"
+          - "=========================================="
+    
+    - name: Check if kubectl is installed
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+      failed_when: false
+      
+    - name: Display kubectl version
+      debug:
+        msg: "Kubectl version: {{ kubectl_version.stdout }}"
+      when: kubectl_version.rc == 0
+      
+    - name: Fail if kubectl is not installed
+      fail:
+        msg: "kubectl is not installed. Please install kubectl first."
+      when: kubectl_version.rc != 0
+      
+    - name: Check Kubernetes cluster connectivity
+      command: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+      failed_when: false
+      
+    - name: Display cluster info
+      debug:
+        msg: "Kubernetes cluster is accessible"
+      when: cluster_info.rc == 0
+      
+    - name: Fail if cluster is not accessible
+      fail:
+        msg: "Cannot connect to Kubernetes cluster. Please ensure cluster is running (e.g., minikube start)."
+      when: cluster_info.rc != 0
+      
+    - name: Create namespace
+      kubernetes.core.k8s:
+        name: "{{ namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+  tasks:
+    - name: Deploy Database Layer
+      include_role:
+        name: database
+      tags:
+        - database
+        - mysql
+        
+    - name: Deploy Backend Layer
+      include_role:
+        name: backend
+      tags:
+        - backend
+        - application
+        
+    - name: Deploy Frontend Layer
+      include_role:
+        name: frontend
+      tags:
+        - frontend
+        - presentation
+
+  post_tasks:
+    - name: Wait for all pods to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - "tier in (database,application,presentation)"
+      register: all_pods
+      until: all_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == all_pods.resources | length
+      retries: 30
+      delay: 10
+      
+    - name: Get all services
+      kubernetes.core.k8s_info:
+        kind: Service
+        namespace: "{{ namespace }}"
+      register: all_services
+      
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Deployment Summary"
+          - "=========================================="
+          - "Namespace: {{ namespace }}"
+          - "Total Pods: {{ all_pods.resources | length }}"
+          - "Total Services: {{ all_services.resources | length }}"
+          - "=========================================="
+          - "Services:"
+          - "  - MySQL: mysql-service:{{ mysql_port }}"
+          - "  - Backend: backend-service:{{ backend_port }} (NodePort: {{ backend_node_port }})"
+          - "  - Frontend: frontend-service:80 (NodePort: {{ frontend_node_port }})"
+          - "=========================================="
+          - "Access URLs (for Minikube):"
+          - "  Frontend: minikube service frontend-service -n {{ namespace }} --url"
+          - "  Backend: minikube service backend-service -n {{ namespace }} --url"
+          - "=========================================="
+          - "Or use port-forward:"
+          - "  kubectl port-forward -n {{ namespace }} svc/frontend-service {{ frontend_port }}:80"
+          - "  kubectl port-forward -n {{ namespace }} svc/backend-service {{ backend_port }}:{{ backend_port }}"
+          - "=========================================="
+          
+    - name: Display next steps
+      debug:
+        msg:
+          - "Deployment completed successfully!"
+          - ""
+          - "Next steps:"
+          - "1. Check pod status: kubectl get pods -n {{ namespace }}"
+          - "2. View logs: kubectl logs -n {{ namespace }} <pod-name>"
+          - "3. Access frontend: minikube service frontend-service -n {{ namespace }}"
+          - "4. Access backend API: minikube service backend-service -n {{ namespace }}"
+          - ""
+          - "Default admin credentials:"
+          - "  Email: demo.admin@demo.com"
+          - "  Password: 123456"

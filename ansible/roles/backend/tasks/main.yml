@@ -1,0 +1,163 @@
+---
+# Tasks for deploying Backend application
+
+- name: Ensure namespace exists
+  kubernetes.core.k8s:
+    name: "{{ namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create Backend ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ backend_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        SPRING_DATASOURCE_URL: "jdbc:mysql://{{ mysql_service_name }}:{{ mysql_port }}/{{ mysql_database }}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+        SPRING_DATASOURCE_USERNAME: "{{ mysql_user }}"
+        SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+        SPRING_JPA_SHOW_SQL: "true"
+        SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: "org.hibernate.dialect.MySQL8Dialect"
+        SERVER_PORT: "{{ backend_port | string }}"
+        CORS_ALLOWED_ORIGINS: "http://localhost:{{ frontend_port }}"
+        JWT_SECRET: "toursandtravelssecretkey2024"
+        JWT_EXPIRATION: "86400000"
+        FILE_UPLOAD_DIR: "/app/uploads"
+        MAX_FILE_SIZE: "10MB"
+        MAX_REQUEST_SIZE: "10MB"
+
+- name: Deploy Backend application
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ backend_deployment_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: backend
+          tier: application
+      spec:
+        replicas: "{{ backend_replicas }}"
+        selector:
+          matchLabels:
+            app: backend
+            tier: application
+        template:
+          metadata:
+            labels:
+              app: backend
+              tier: application
+          spec:
+            initContainers:
+            - name: wait-for-mysql
+              image: busybox:1.35
+              command:
+              - sh
+              - -c
+              - |
+                until nc -z {{ mysql_service_name }} {{ mysql_port }}; do
+                  echo "Waiting for MySQL to be ready..."
+                  sleep 5
+                done
+                echo "MySQL is ready!"
+            containers:
+            - name: backend
+              image: "{{ backend_image }}"
+              imagePullPolicy: IfNotPresent
+              ports:
+              - containerPort: "{{ backend_port }}"
+                name: http
+                protocol: TCP
+              env:
+              - name: SPRING_DATASOURCE_URL
+                valueFrom:
+                  configMapKeyRef:
+                    name: "{{ backend_configmap_name }}"
+                    key: SPRING_DATASOURCE_URL
+              - name: SPRING_DATASOURCE_USERNAME
+                valueFrom:
+                  configMapKeyRef:
+                    name: "{{ backend_configmap_name }}"
+                    key: SPRING_DATASOURCE_USERNAME
+              - name: SPRING_DATASOURCE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql-secret
+                    key: mysql-password
+              - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+                valueFrom:
+                  configMapKeyRef:
+                    name: "{{ backend_configmap_name }}"
+                    key: SPRING_JPA_HIBERNATE_DDL_AUTO
+              - name: SERVER_PORT
+                valueFrom:
+                  configMapKeyRef:
+                    name: "{{ backend_configmap_name }}"
+                    key: SERVER_PORT
+              command:
+              - sh
+              - -c
+              - |
+                echo "Backend container started. In production, replace this with your application JAR"
+                echo "Example: java -jar /app/travel-booking-backend.jar"
+                tail -f /dev/null
+              resources:
+                requests:
+                  memory: "{{ backend_memory_request }}"
+                  cpu: "{{ backend_cpu_request }}"
+                limits:
+                  memory: "{{ backend_memory_limit }}"
+                  cpu: "{{ backend_cpu_limit }}"
+              volumeMounts:
+              - name: uploads
+                mountPath: /app/uploads
+            volumes:
+            - name: uploads
+              emptyDir: {}
+
+- name: Create Backend service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ backend_service_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: backend
+          tier: application
+      spec:
+        type: NodePort
+        ports:
+        - port: "{{ backend_port }}"
+          targetPort: "{{ backend_port }}"
+          protocol: TCP
+          name: http
+          nodePort: "{{ backend_node_port }}"
+        selector:
+          app: backend
+          tier: application
+
+- name: Wait for Backend to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - app=backend
+    wait: yes
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 300
+
+- name: Display Backend deployment status
+  debug:
+    msg: "Backend application deployed successfully in namespace {{ namespace }}"

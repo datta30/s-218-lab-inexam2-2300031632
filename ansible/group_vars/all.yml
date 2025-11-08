@@ -1,0 +1,45 @@
+---
+# Global variables for Travel Booking System deployment
+
+# Application details
+app_name: "travel-booking"
+app_version: "1.0.0"
+environment: "production"
+
+# Kubernetes configuration
+namespace: "travel-booking"
+kubectl_cmd: "kubectl"
+
+# Database configuration
+mysql_root_password: "rootpassword123"
+mysql_database: "travelbooking"
+mysql_user: "traveluser"
+mysql_password: "travelpassword123"
+mysql_port: 3306
+
+# Backend configuration
+backend_replicas: 2
+backend_port: 8080
+backend_node_port: 30080
+backend_image: "openjdk:17-jdk-slim"
+backend_cpu_request: "500m"
+backend_cpu_limit: "1000m"
+backend_memory_request: "512Mi"
+backend_memory_limit: "1Gi"
+
+# Frontend configuration
+frontend_replicas: 2
+frontend_port: 3000
+frontend_node_port: 30000
+frontend_image: "node:18-alpine"
+frontend_cpu_request: "250m"
+frontend_cpu_limit: "500m"
+frontend_memory_request: "256Mi"
+frontend_memory_limit: "512Mi"
+
+# Storage configuration
+mysql_storage_size: "5Gi"
+storage_class: "standard"
+
+# Path to Kubernetes manifests
+k8s_manifests_path: "../kubernetes"

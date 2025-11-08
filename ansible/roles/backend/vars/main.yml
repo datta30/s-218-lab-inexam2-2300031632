@@ -1,0 +1,6 @@
+---
+# Backend role variables
+
+backend_service_name: "backend-service"
+backend_deployment_name: "backend-deployment"
+backend_configmap_name: "backend-config"

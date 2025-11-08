@@ -1,0 +1,103 @@
+---
+# Tasks for deploying Frontend application
+
+- name: Ensure namespace exists
+  kubernetes.core.k8s:
+    name: "{{ namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Deploy Frontend application
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ frontend_deployment_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: frontend
+          tier: presentation
+      spec:
+        replicas: "{{ frontend_replicas }}"
+        selector:
+          matchLabels:
+            app: frontend
+            tier: presentation
+        template:
+          metadata:
+            labels:
+              app: frontend
+              tier: presentation
+          spec:
+            containers:
+            - name: frontend
+              image: "{{ frontend_image }}"
+              imagePullPolicy: IfNotPresent
+              ports:
+              - containerPort: "{{ frontend_port }}"
+                name: http
+                protocol: TCP
+              env:
+              - name: REACT_APP_BACKEND_URL
+                value: "http://{{ backend_service_name }}:{{ backend_port }}"
+              - name: PORT
+                value: "{{ frontend_port | string }}"
+              - name: NODE_ENV
+                value: "production"
+              command:
+              - sh
+              - -c
+              - |
+                echo "Frontend container started. In production, replace this with your application"
+                echo "Example: npm start or serve -s build"
+                tail -f /dev/null
+              resources:
+                requests:
+                  memory: "{{ frontend_memory_request }}"
+                  cpu: "{{ frontend_cpu_request }}"
+                limits:
+                  memory: "{{ frontend_memory_limit }}"
+                  cpu: "{{ frontend_cpu_limit }}"
+
+- name: Create Frontend service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ frontend_service_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: frontend
+          tier: presentation
+      spec:
+        type: NodePort
+        ports:
+        - port: 80
+          targetPort: "{{ frontend_port }}"
+          protocol: TCP
+          name: http
+          nodePort: "{{ frontend_node_port }}"
+        selector:
+          app: frontend
+          tier: presentation
+
+- name: Wait for Frontend to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - app=frontend
+    wait: yes
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 300
+
+- name: Display Frontend deployment status
+  debug:
+    msg: "Frontend application deployed successfully in namespace {{ namespace }}"

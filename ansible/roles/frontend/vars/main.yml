@@ -1,0 +1,5 @@
+---
+# Frontend role variables
+
+frontend_service_name: "frontend-service"
+frontend_deployment_name: "frontend-deployment"

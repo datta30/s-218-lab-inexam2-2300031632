@@ -1,0 +1,169 @@
+---
+# Tasks for deploying MySQL database
+
+- name: Create namespace
+  kubernetes.core.k8s:
+    name: "{{ namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create MySQL secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ mysql_secret_name }}"
+        namespace: "{{ namespace }}"
+      type: Opaque
+      data:
+        mysql-root-password: "{{ mysql_root_password | b64encode }}"
+        mysql-database: "{{ mysql_database | b64encode }}"
+        mysql-user: "{{ mysql_user | b64encode }}"
+        mysql-password: "{{ mysql_password | b64encode }}"
+
+- name: Create MySQL PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ mysql_pvc_name }}"
+        namespace: "{{ namespace }}"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "{{ mysql_storage_size }}"
+        storageClassName: "{{ storage_class }}"
+
+- name: Deploy MySQL
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ mysql_deployment_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: mysql
+          tier: database
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: mysql
+            tier: database
+        strategy:
+          type: Recreate
+        template:
+          metadata:
+            labels:
+              app: mysql
+              tier: database
+          spec:
+            containers:
+            - name: mysql
+              image: mysql:8.0
+              ports:
+              - containerPort: "{{ mysql_port }}"
+                name: mysql
+              env:
+              - name: MYSQL_ROOT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ mysql_secret_name }}"
+                    key: mysql-root-password
+              - name: MYSQL_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ mysql_secret_name }}"
+                    key: mysql-database
+              - name: MYSQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ mysql_secret_name }}"
+                    key: mysql-user
+              - name: MYSQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ mysql_secret_name }}"
+                    key: mysql-password
+              volumeMounts:
+              - name: mysql-persistent-storage
+                mountPath: /var/lib/mysql
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1000m"
+              livenessProbe:
+                exec:
+                  command:
+                  - mysqladmin
+                  - ping
+                  - -h
+                  - localhost
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+              readinessProbe:
+                exec:
+                  command:
+                  - mysqladmin
+                  - ping
+                  - -h
+                  - localhost
+                initialDelaySeconds: 10
+                periodSeconds: 5
+                timeoutSeconds: 3
+            volumes:
+            - name: mysql-persistent-storage
+              persistentVolumeClaim:
+                claimName: "{{ mysql_pvc_name }}"
+
+- name: Create MySQL service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ mysql_service_name }}"
+        namespace: "{{ namespace }}"
+        labels:
+          app: mysql
+          tier: database
+      spec:
+        type: ClusterIP
+        ports:
+        - port: "{{ mysql_port }}"
+          targetPort: "{{ mysql_port }}"
+          protocol: TCP
+          name: mysql
+        selector:
+          app: mysql
+          tier: database
+
+- name: Wait for MySQL to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - app=mysql
+    wait: yes
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 300
+
+- name: Display MySQL deployment status
+  debug:
+    msg: "MySQL database deployed successfully in namespace {{ namespace }}"

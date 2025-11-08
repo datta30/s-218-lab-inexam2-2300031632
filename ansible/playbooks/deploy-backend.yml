@@ -1,0 +1,27 @@
+---
+# Playbook to deploy Backend application for Travel Booking System
+
+- name: Deploy Backend Application
+  hosts: local
+  gather_facts: yes
+  become: false
+  
+  pre_tasks:
+    - name: Check if MySQL is deployed
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: mysql-service
+        namespace: "{{ namespace }}"
+      register: mysql_service
+      failed_when: false
+      
+    - name: Display warning if MySQL is not deployed
+      debug:
+        msg: "WARNING: MySQL service not found. Backend may fail to connect to database."
+      when: mysql_service.resources | length == 0
+
+  roles:
+    - role: backend
+      tags:
+        - backend
+        - application

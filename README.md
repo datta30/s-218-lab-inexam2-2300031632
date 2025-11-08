@@ -2,6 +2,13 @@
 
 This repository contains Kubernetes manifests and Ansible playbooks to deploy the Travel Booking System fullstack application on Kubernetes.
 
+## Student Information
+
+- **Name**: M.Datta Sri Sai Charan
+- **ID**: 2300031632
+- **Lab**: S-218 Lab In-Exam 2
+
+
 ## Application Architecture
 
 - **Frontend**: React application (Port 3000)
@@ -443,13 +450,3 @@ kubectl exec -it -n travel-booking backend-deployment-<pod-id> -- nc -zv mysql-s
 - The backend uses H2 in-memory database by default in the source. For production, update to use MySQL
 - Frontend is configured to connect to backend on port 8080
 - All services use ClusterIP by default; use NodePort or LoadBalancer for external access
-
-## License
-
-This deployment configuration is part of the Travel Booking System project.
-
-## Student Information
-
-- **Name**: [Your Name]
-- **ID**: 2300031632
-- **Lab**: S-218 Lab In-Exam 2
